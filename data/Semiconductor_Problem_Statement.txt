@@ -1,0 +1,122 @@
+Create an interesting system for teaching Semiconductor domain-related concepts to young learners. The user chooses 3 domain-specific terms from the list below, and the LLM generates a story using those terms. The user also enters the required word count and genre as inputs to the LLM.
+
+1. Silicon wafer
+2. Boule
+3. 200mm wafer
+4. 300mm wafer
+5. 450mm wafer
+6. Polysilicon
+7. SiC (Silicon Carbide)
+8. GaN (Gallium Nitride)
+9. GaAs (Gallium Arsenide)
+10. SiGe (Silicon Germanium)
+11. Germanium
+12. Sapphire substrate
+13. SOI (Silicon-On-Insulator)
+14. Lithography
+15. EUV (Extreme Ultraviolet)
+16. DUV (Deep Ultraviolet)
+17. ArF immersion
+18. Photomask
+19. Reticle
+20. Photoresist
+21. EUV photoresist
+22. Pellicle
+23. Deposition
+24. CVD (Chemical Vapor Deposition)
+25. PVD (Physical Vapor Deposition)
+26. ALD (Atomic Layer Deposition)
+27. PECVD
+28. MOCVD
+29. Etch
+30. Wet Etch
+31. Dry Etch
+32. RIE (Reactive Ion Etch)
+33. ALE (Atomic Layer Etch)
+34. CMP (Chemical-Mechanical Planarization)
+35. Damascene
+36. Dual-damascene
+37. Ion Implantation
+38. Anneal
+39. RTP (Rapid Thermal Processing)
+40. EPI (Epitaxy)
+41. Oxidation
+42. Nitridation
+43. Silicidation
+44. Gate Oxide
+45. Hard Mask
+46. Transistor
+47. MOSFET
+48. CMOS
+49. FinFET
+50. GAA (Gate-All-Around)
+51. Nanosheet
+52. BJT (Bipolar Junction Transistor)
+53. HEMT (High Electron Mobility Transistor)
+54. IGBT (Insulated Gate Bipolar Transistor)
+55. Thyristor
+56. GTO (Gate Turn-Off Thyristor)
+57. Diode
+58. Avalanche Diode
+59. Avalanche Photodiode
+60. Photodetector
+61. LED (Light-Emitting Diode)
+62. Antifuse
+63. Varactor
+64. MEMS (Micro-Electro-Mechanical Systems)
+65. IC (Integrated Circuit)
+66. ASIC (Application-Specific IC)
+67. SoC (System-on-Chip)
+68. FPGA (Field-Programmable Gate Array)
+69. CPLD (Complex Programmable Logic Device)
+70. MPU (Microprocessor Unit)
+71. MCU (Microcontroller Unit)
+72. GPU (Graphics Processing Unit)
+73. TPU (Tensor Processing Unit)
+74. NPU (Neural Processing Unit)
+75. DSP (Digital Signal Processor)
+76. ALU (Arithmetic Logic Unit)
+77. SRAM (Static Random Access Memory)
+78. DRAM (Dynamic Random Access Memory)
+79. NAND Flash
+80. 3D NAND
+81. HBM (High Bandwidth Memory)
+82. DDR (Double Data Rate)
+83. CIS (CMOS Image Sensor)
+84. PMIC (Power Management IC)
+85. ADC (Analog-to-Digital Converter)
+86. DAC (Digital-to-Analog Converter)
+87. PLL (Phase-Locked Loop)
+88. SerDes (Serializer/Deserializer)
+89. BCD (Bipolar-CMOS-DMOS)
+90. Die
+91. Wafer
+92. Wire Bonding
+93. Flip-Chip
+94. BGA (Ball Grid Array)
+95. LGA (Land Grid Array)
+96. QFN (Quad Flat No-lead)
+97. QFP (Quad Flat Package)
+98. PoP (Package-on-Package)
+99. 3DIC (3D Integrated Circuit)
+100. TSV (Through-Silicon Via)
+101. Advanced Packaging
+102. CoWoS (Chip-on-Wafer-on-Substrate)
+103. Fan-Out Wafer-Level Packaging
+104. Cu Pillar
+105. Interposer
+106. Lead Frame
+107. ABF (Ajinomoto Build-up Film)
+108. OSAT (Outsourced Semiconductor Assembly and Test)
+109. CD-SEM (Critical Dimension SEM)
+110. Metrology
+111. Overlay
+112. ADC (Automatic Defect Classification)
+113. ADR (Automatic Defect Review)
+114. COP (Crystal Originated Particle)
+115. Random Defects
+116. Systematic Defects
+117. Black Silicon
+118. Wafer-Level Testing
+119. CP (Chip Probing)
+120. FT (Final Test)
