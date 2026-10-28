@@ -1,4 +1,10 @@
+# Local database and generated files
+stories.db
+stories.db-journal
+stories.db-wal
+stories.db-shm
 
-.env
+# Python environment
 .venv/
 __pycache__/
+.env
