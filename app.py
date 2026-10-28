@@ -1,8 +1,22 @@
 
+from database import (
+    save_story,
+    get_all_stories,
+    get_story,
+    delete_story,
+    clear_history,
+)
 import json
 import re
 import requests
 import streamlit as st
+
+def extract_title(story):
+    for line in story.splitlines():
+        line = line.strip().lstrip("#").strip()
+        if line:
+            return line[:200]
+    return "Untitled Silicon Story"
 
 # -----------------------------
 # Configuration
@@ -253,6 +267,19 @@ if generate_button:
             st.session_state["terms"] = selected_terms
             st.session_state["genre"] = genre
             st.session_state["target_words"] = word_count
+            
+             # Prevent duplicate saves when Streamlit reruns the page.
+            if st.session_state.get("last_saved_story") != story:
+                story_id = save_story(
+                title=extract_title(story),
+                content=story,
+                terms=selected_terms,
+                genre=genre,
+                target_words=word_count,
+            )
+            st.session_state["last_saved_story"] = story
+            st.session_state["current_story_id"] = story_id
+            st.success("Story saved to your history!")
             st.session_state.pop("glossary", None)
             st.session_state.pop("quiz", None)
             st.session_state.pop("quiz_answers", None)
@@ -383,3 +410,73 @@ else:
 
 st.divider()
 st.caption("Powered by Streamlit and Ollama · Local AI generation")
+
+st.divider()
+st.header("📚 Story History")
+
+saved_stories = get_all_stories()
+
+if not saved_stories:
+    st.info("No saved stories yet. Generate your first story!")
+else:
+    st.write(f"Total saved stories: {len(saved_stories)}")
+
+    # Select a previous story.
+    choices = {
+        f"#{item['id']} — {item['title']} "
+        f"({item['created_at'][:10]})": item["id"]
+        for item in saved_stories
+    }
+
+    selected_label = st.selectbox(
+        "Choose a story to revisit",
+        options=list(choices.keys()),
+        key="history_selection",
+    )
+
+    selected_id = choices[selected_label]
+    previous_story = get_story(selected_id)
+
+    if previous_story:
+        st.subheader(previous_story["title"])
+        st.caption(
+            f"Genre: {previous_story['genre']} | "
+            f"Terms: {previous_story['terms']} | "
+            f"Target: {previous_story['target_words']} words"
+        )
+
+        st.markdown(previous_story["content"])
+
+        st.download_button(
+            "⬇️ Download Previous Story",
+            data=previous_story["content"],
+            file_name=f"silicon_story_{selected_id}.txt",
+            mime="text/plain",
+            key=f"download_{selected_id}",
+        )
+
+        if st.button(
+            "🗑️ Delete This Story",
+            key=f"delete_{selected_id}",
+        ):
+            delete_story(selected_id)
+            st.rerun()
+
+    if st.button("Clear All Story History"):
+        st.session_state["confirm_clear_history"] = True
+
+    if st.session_state.get("confirm_clear_history", False):
+        st.warning("This permanently deletes all saved stories.")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if st.button("Confirm Delete All", type="primary"):
+                clear_history()
+                st.session_state.pop("confirm_clear_history", None)
+                st.rerun()
+
+        with col2:
+            if st.button("Cancel"):
+                st.session_state.pop("confirm_clear_history", None)
+                st.rerun()
