@@ -1,3 +1,7 @@
+import json
+import re
+import requests
+import streamlit as st
 
 from database import (
     save_story,
@@ -6,17 +10,7 @@ from database import (
     delete_story,
     clear_history,
 )
-import json
-import re
-import requests
-import streamlit as st
 
-def extract_title(story):
-    for line in story.splitlines():
-        line = line.strip().lstrip("#").strip()
-        if line:
-            return line[:200]
-    return "Untitled Silicon Story"
 
 # -----------------------------
 # Configuration
@@ -50,6 +44,137 @@ GENRES = [
 
 
 # -----------------------------
+# Page configuration
+# Must be the first Streamlit command.
+# -----------------------------
+st.set_page_config(
+    page_title="Silicon Stories",
+    page_icon="🔬",
+    layout="wide",
+)
+
+
+# -----------------------------
+# Professional UI styling
+# -----------------------------
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background: linear-gradient(180deg, #f3f7fc 0%, #ffffff 48%);
+    }
+
+    .block-container {
+        max-width: 1180px;
+        padding-top: 2rem;
+        padding-bottom: 3rem;
+    }
+
+    h1, h2, h3 {
+        color: #142d4e;
+        letter-spacing: -0.4px;
+    }
+
+    p, label, .stMarkdown {
+        line-height: 1.65;
+    }
+
+    section[data-testid="stSidebar"] {
+        background: #10243e;
+    }
+
+    section[data-testid="stSidebar"] * {
+        color: #f1f5fb;
+    }
+
+    section[data-testid="stSidebar"] [data-baseweb="select"] * {
+        color: #172b45;
+    }
+
+    section[data-testid="stSidebar"] input {
+        color: #172b45;
+    }
+
+    .stButton > button,
+    .stDownloadButton > button {
+        border-radius: 10px;
+        min-height: 42px;
+        font-weight: 600;
+        border: 1px solid #d5dfeb;
+        transition: all 0.2s ease;
+    }
+
+    .stButton > button[kind="primary"] {
+        background: #1769aa;
+        color:white;
+        border: none;
+    }
+
+    .stButton > button:hover,
+    .stDownloadButton > button:hover {
+        border-color: #1769aa;
+        transform: translateY(-1px);
+    }
+
+    [data-baseweb="select"],
+    [data-baseweb="input"] {
+        border-radius: 9px;
+    }
+
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        border-radius: 14px;
+        border-color: #dce5f0;
+        box-shadow: 0 3px 12px rgba(25, 55, 90, 0.04);
+    }
+
+    button[data-baseweb="tab"] {
+        font-weight: 600;
+    }
+
+    button[data-baseweb="tab"][aria-selected="true"] {
+        color: #1769aa;
+    }
+
+    hr {
+        border-color: #dce5f0;
+    }
+
+    .app-footer {
+        text-align: center;
+        color: #64748b;
+        font-size: 0.85rem;
+        padding: 22px 0;
+    }
+
+    @media (max-width: 700px) {
+        .block-container {
+            padding: 1rem 1rem 2rem;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# -----------------------------
+# Helper functions
+# -----------------------------
+def extract_title(story):
+    """Use the first non-empty line as the story title."""
+    for line in story.splitlines():
+        line = line.strip().lstrip("#").strip()
+        if line:
+            return line[:200]
+    return "Untitled Silicon Story"
+
+
+def count_words(text):
+    """Count words in a story."""
+    return len(re.findall(r"\b[\w'-]+\b", text))
+
+
+# -----------------------------
 # Ollama helper
 # -----------------------------
 def ask_ollama(prompt):
@@ -70,8 +195,8 @@ def ask_ollama(prompt):
 
     except requests.exceptions.ConnectionError:
         st.error(
-            "Cannot connect to Ollama. "
-            "Open a terminal and run: ollama serve"
+            "Cannot connect to Ollama. If it is not already running, "
+            "open a terminal and run: ollama serve"
         )
     except requests.exceptions.Timeout:
         st.error("The model took too long to respond. Try a shorter story.")
@@ -81,13 +206,6 @@ def ask_ollama(prompt):
         st.error("Ollama returned an invalid response.")
 
     return None
-
-
-# -----------------------------
-# Word count helper
-# -----------------------------
-def count_words(text):
-    return len(re.findall(r"\b[\w'-]+\b", text))
 
 
 # -----------------------------
@@ -174,24 +292,26 @@ STORY:
         return None
 
     # Extract JSON if the model adds code fences or extra text.
-    match = re.search(r"\{.*\}", raw, re.DOTALL)
-    if not match:
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start == -1 or end == -1 or end < start:
         return None
 
     try:
-        data = json.loads(match.group())
+        data = json.loads(raw[start:end + 1])
         questions = data.get("questions", [])
 
-        if len(questions) != 5:
+        if not isinstance(questions, list) or len(questions) != 5:
             return None
 
-        for q in questions:
+        for question in questions:
+            if not isinstance(question, dict):
+                return None
+            options = question.get("options")
             if (
-                not isinstance(q.get("options"), dict)
-                or q.get("answer") not in ["A", "B", "C", "D"]
-                or not all(
-                    key in q["options"] for key in ["A", "B", "C", "D"]
-                )
+                not isinstance(options, dict)
+                or question.get("answer") not in ["A", "B", "C", "D"]
+                or not all(key in options for key in ["A", "B", "C", "D"])
             ):
                 return None
 
@@ -202,23 +322,59 @@ STORY:
 
 
 # -----------------------------
-# Streamlit interface
+# Header and hero section
 # -----------------------------
-st.set_page_config(
-    page_title="Silicon Stories",
-    page_icon="🔬",
-    layout="wide",
+st.markdown(
+    """
+    # 🔬 Silicon Stories
+
+    ### Discover the world of semiconductors through storytelling.
+
+    Turn complex semiconductor concepts into engaging stories,
+    simple explanations, and interactive quizzes using local AI.
+    """
 )
 
-st.title("🔬 Silicon Stories")
-st.subheader("A Creative Learning Engine for the Semiconductor Industry")
-st.write(
-    "Turn semiconductor concepts into stories, simple explanations, "
-    "and interactive quizzes — powered by a local AI model."
+st.markdown(
+    """
+    <div style="
+        background: linear-gradient(120deg, #10243e, #1769aa);
+        padding: 22px 25px;
+        border-radius: 16px;
+        color: white;
+        margin: 12px 0 25px 0;
+    ">
+        <div style="font-size: 13px; opacity: 0.85;">
+            YOUR PERSONAL SEMICONDUCTOR LEARNING STUDIO
+        </div>
+        <div style="font-size: 23px; font-weight: 700; margin-top: 7px;">
+            Learn science. Explore stories. Test your knowledge.
+        </div>
+        <div style="font-size: 14px; margin-top: 8px;">
+            Powered by Ollama and Llama 3.2
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
+metric1, metric2, metric3 = st.columns(3)
+with metric1:
+    st.metric("AI Engine", "Llama 3.2")
+with metric2:
+    st.metric("Story Mode", "Creative Learning")
+with metric3:
+    st.metric("Generation", "Local AI")
+
+
+# -----------------------------
+# Sidebar story settings
+# -----------------------------
 with st.sidebar:
-    st.header("Story Settings")
+    st.markdown("## 🔬 Silicon Stories")
+    st.caption("YOUR LEARNING WORKSPACE")
+    st.divider()
+    st.markdown("### ⚙️ Story Configuration")
 
     selected_terms = st.multiselect(
         "Choose exactly three semiconductor terms",
@@ -248,65 +404,80 @@ with st.sidebar:
     )
 
     generate_button = st.button(
-        "Generate Silicon Story",
+        "✨ Generate My Story",
         type="primary",
         use_container_width=True,
     )
 
+
+# -----------------------------
+# Generate and save a new story
+# -----------------------------
 if generate_button:
     if len(selected_terms) != 3:
         st.warning("Please select exactly three semiconductor terms.")
     else:
         with st.spinner("Your AI story is being created..."):
-            story = generate_story(
+            generated_story = generate_story(
                 selected_terms, word_count, genre, age_group
             )
 
-        if story:
-            st.session_state["story"] = story
-            st.session_state["terms"] = selected_terms
-            st.session_state["genre"] = genre
-            st.session_state["target_words"] = word_count
-            
-             # Prevent duplicate saves when Streamlit reruns the page.
-            if st.session_state.get("last_saved_story") != story:
+        if generated_story:
+            try:
                 story_id = save_story(
-                title=extract_title(story),
-                content=story,
-                terms=selected_terms,
-                genre=genre,
-                target_words=word_count,
-            )
-            st.session_state["last_saved_story"] = story
-            st.session_state["current_story_id"] = story_id
-            st.success("Story saved to your history!")
-            st.session_state.pop("glossary", None)
-            st.session_state.pop("quiz", None)
-            st.session_state.pop("quiz_answers", None)
+                    title=extract_title(generated_story),
+                    content=generated_story,
+                    terms=selected_terms,
+                    genre=genre,
+                    target_words=word_count,
+                )
 
-# Display saved story
+                st.session_state["story"] = generated_story
+                st.session_state["terms"] = selected_terms
+                st.session_state["genre"] = genre
+                st.session_state["target_words"] = word_count
+                st.session_state["current_story_id"] = story_id
+
+                # Clear results belonging to the previous story.
+                for key in ("glossary", "quiz", "quiz_answers", "quiz_score"):
+                    st.session_state.pop(key, None)
+
+                st.success("Story generated and saved to your history!")
+            except Exception as error:
+                st.error(f"The story was generated, but could not be saved: {error}")
+                # Keep the generated story available in the current session.
+                st.session_state["story"] = generated_story
+                st.session_state["terms"] = selected_terms
+                st.session_state["genre"] = genre
+                st.session_state["target_words"] = word_count
+
+
+# -----------------------------
+# Current story, glossary and quiz
+# -----------------------------
 if st.session_state.get("story"):
     story = st.session_state["story"]
-    terms = st.session_state["terms"]
+    terms = st.session_state.get("terms", [])
 
     st.divider()
-    st.header("📖 Your Silicon Story")
+    st.markdown("## 📖 Your Learning Story")
     st.caption(
-        f"Genre: {st.session_state['genre']} · "
-        f"Target: {st.session_state['target_words']} words · "
+        f"Genre: {st.session_state.get('genre', 'Unknown')} · "
+        f"Target: {st.session_state.get('target_words', 0)} words · "
         f"Actual: {count_words(story)} words"
     )
 
-    st.markdown(story)
+    with st.container(border=True):
+        st.markdown(story)
+        st.download_button(
+            "⬇️ Download Story",
+            data=story,
+            file_name="silicon_story.txt",
+            mime="text/plain",
+            use_container_width=True,
+            key="download_current_story",
+        )
 
-    st.download_button(
-        "⬇️ Download Story",
-        data=story,
-        file_name="silicon_story.txt",
-        mime="text/plain",
-    )
-
-    st.divider()
     tab_glossary, tab_quiz = st.tabs(
         ["📚 Semiconductor Glossary", "🧠 Story Quiz"]
     )
@@ -339,6 +510,7 @@ if st.session_state.get("story"):
             if questions:
                 st.session_state["quiz"] = questions
                 st.session_state.pop("quiz_answers", None)
+                st.session_state.pop("quiz_score", None)
             else:
                 st.error(
                     "The model did not return a valid five-question quiz. "
@@ -346,7 +518,6 @@ if st.session_state.get("story"):
                 )
 
         questions = st.session_state.get("quiz")
-
         if questions:
             with st.form("quiz_form"):
                 answers = {}
@@ -377,7 +548,6 @@ if st.session_state.get("story"):
                 for i, question in enumerate(questions):
                     chosen = answers[i]
                     correct = question["answer"]
-
                     if chosen and chosen.startswith(correct + "."):
                         score += 1
 
@@ -385,7 +555,10 @@ if st.session_state.get("story"):
                 st.session_state["quiz_score"] = score
 
             if "quiz_score" in st.session_state:
-                st.metric("Your Score", f"{st.session_state['quiz_score']} / 5")
+                st.metric(
+                    "Your Score",
+                    f"{st.session_state['quiz_score']} / 5",
+                )
 
                 for i, question in enumerate(questions):
                     chosen = st.session_state["quiz_answers"].get(i)
@@ -401,18 +574,19 @@ if st.session_state.get("story"):
                         )
 
                     st.caption(question.get("explanation", ""))
-
 else:
     st.info(
         "Choose three terms, a genre, and a word count in the sidebar "
         "to create your first story."
     )
 
-st.divider()
-st.caption("Powered by Streamlit and Ollama · Local AI generation")
 
+# -----------------------------
+# Persistent story history
+# -----------------------------
 st.divider()
-st.header("📚 Story History")
+st.markdown("## 📚 Your Story Library")
+st.caption("Revisit, download, or manage stories saved on this device.")
 
 saved_stories = get_all_stories()
 
@@ -421,10 +595,9 @@ if not saved_stories:
 else:
     st.write(f"Total saved stories: {len(saved_stories)}")
 
-    # Select a previous story.
     choices = {
-        f"#{item['id']} — {item['title']} "
-        f"({item['created_at'][:10]})": item["id"]
+        f"#{item['id']} — {item['title']} ({item['created_at'][:10]})":
+        item["id"]
         for item in saved_stories
     }
 
@@ -462,7 +635,7 @@ else:
             delete_story(selected_id)
             st.rerun()
 
-    if st.button("Clear All Story History"):
+    if st.button("Clear All Story History", key="clear_history"):
         st.session_state["confirm_clear_history"] = True
 
     if st.session_state.get("confirm_clear_history", False):
@@ -477,6 +650,21 @@ else:
                 st.rerun()
 
         with col2:
-            if st.button("Cancel"):
+            if st.button("Cancel", key="cancel_clear_history"):
                 st.session_state.pop("confirm_clear_history", None)
                 st.rerun()
+
+
+# -----------------------------
+# Footer
+# -----------------------------
+st.markdown(
+    """
+    <div class="app-footer">
+        Silicon Stories · AI-Powered Semiconductor Learning
+        <br>
+        Built with Streamlit, Python, SQLite and Ollama
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
